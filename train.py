@@ -96,7 +96,7 @@ for epoch in range(cfg.TRAIN.NUM_EPOCHS):
         torch.save(likelihood_text.state_dict(), os.path.join(cfg.MODEL.CHECKPOINT_DIR,'likelihood_text_last.pth'))
         torch.save(likelihood_image.state_dict(), os.path.join(cfg.MODEL.CHECKPOINT_DIR,'likelihood_image_last.pth'))
         torch.save(X, os.path.join(cfg.MODEL.CHECKPOINT_DIR,'X_last.pth'))
-        print(f"Epoch [{epoch}/{cfg.TRAI.NUM_EPOCHS}], Step [{idx}/{tepoch}], Loss: {total_loss.item()}")
+        print(f"Epoch [{epoch}/{cfg.TRAIN.NUM_EPOCHS}], Step [{idx}/{tepoch}], Loss: {total_loss.item()}")
 
     if total_loss.item() < score:
         score = total_loss.item()
