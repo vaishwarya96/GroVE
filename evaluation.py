@@ -6,6 +6,7 @@ from tqdm import tqdm
 import torch.nn.functional as F
 from gpytorch.mlls import VariationalELBO
 
+
 from config import get_cfg_defaults 
 import model
 import utils
@@ -31,14 +32,14 @@ model_text = model.LVM(data_dim=cfg.MODEL.EMB_DIM, latent_dim=cfg.MODEL.LATENT_D
 likelihood_text = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=cfg.MODEL.EMB_DIM).to(device)
 likelihood_image = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=cfg.MODEL.EMB_DIM).to(device)
 
-model_image.load_state_dict(torch.load(ckpt_path+'model_image_last.pth'))
+model_image.load_state_dict(torch.load(os.path.join(cfg.MODEL.CHECKPOINT_DIR,'model_image_best.pth')))
 model_image.eval()
-model_text.load_state_dict(torch.load(ckpt_path+'model_text_last.pth'))
+model_text.load_state_dict(torch.load(os.path.join(cfg.MODEL.CHECKPOINT_DIR,'model_text_best.pth')))
 model_text.eval()
 
-likelihood_image.load_state_dict(torch.load(ckpt_path+'likelihood_image_last.pth'))
+likelihood_image.load_state_dict(torch.load(os.path.join(cfg.MODEL.CHECKPOINT_DIR,'likelihood_image_best.pth')))
 likelihood_image.eval()
-likelihood_text.load_state_dict(torch.load(ckpt_path+'likelihood_text_last.pth'))
+likelihood_text.load_state_dict(torch.load(os.path.join(cfg.MODEL.CHECKPOINT_DIR,'likelihood_text_best.pth')))
 likelihood_text.eval()
 
 gt_labels = []
@@ -71,8 +72,8 @@ with tqdm(test_loader, unit='batch') as tepoch:
         clip_txt_embeddings.append(xfT)
 
         # Infer latent variables Z_new from new text features
-        Z_txt_mean, Z_txt_variance = utils.infer_prob_embeddings(model_text, likelihood_text, xfT)
-        Z_img_mean, Z_img_variance = utils.infer_prob_embeddings(model_image, likelihood_image, xfI)
+        Z_txt_mean, Z_txt_variance = utils.infer_prob_embeddings(model_text, likelihood_text, cfg.MODEL.LATENT_DIM, xfT)
+        Z_img_mean, Z_img_variance = utils.infer_prob_embeddings(model_image, likelihood_image, cfg.MODEL.LATENT_DIM, xfI)
 
         learned_img_embeddings_mean.append(Z_img_mean.detach())
         learned_txt_embeddings_mean.append(Z_txt_mean.detach())
@@ -82,6 +83,13 @@ with tqdm(test_loader, unit='batch') as tepoch:
 r_dict['i_u'] = learned_img_embeddings_variance
 r_dict['t_u'] = learned_txt_embeddings_variance
 
+clip_img_embeddings = torch.cat(clip_img_embeddings).cpu()
+clip_txt_embeddings = torch.cat(clip_txt_embeddings).cpu()
+learned_img_embeddings_mean = torch.cat(learned_img_embeddings_mean).cpu()
+learned_txt_embeddings_mean = torch.cat(learned_txt_embeddings_mean).cpu()
+learned_img_embeddings_variance = torch.cat(learned_img_embeddings_variance).cpu()
+learned_txt_embeddings_variance = torch.cat(learned_txt_embeddings_variance).cpu()
+
 im_uncertainty=r_dict['i_u']
 txt_uncertainty=r_dict['t_u']
 
@@ -89,16 +97,16 @@ pred_ranks_all = utils.get_pred_ranks(clip_img_embeddings, clip_txt_embeddings)
 
 #ece_score = get_expected_calibration_error_retrieval(pred_ranks_all, q_classes_all=gt_labels, g_classes_all=gt_labels, embedding_variances=learned_txt_embeddings_variance)
 
-recall_scores = utils.new_recall(pred_ranks_all, q_classes_all=gt_labels, g_classes_all=gt_labels)
+recall_scores = utils.get_recall(pred_ranks_all, q_classes_all=gt_labels, g_classes_all=gt_labels)
 #recall_scores = utils.get_recall_COCOFLICKR(pred_ranks_all, q_idx=q_idx)
 
-print(recall_scores)
+print("Recall scores: ", recall_scores)
 
-sort_v_idx, sort_t_idx = sort_wrt_uncer(r_dict)
+sort_v_idx, sort_t_idx = utils.sort_wrt_uncer(r_dict)
 
-ret_bins_spacing = create_uncer_bins_eq_spacing(sort_v_idx, n_bins=5)
-ret_bins_samples = create_uncer_bins_eq_samples(sort_v_idx, n_bins=5)
+ret_bins_spacing = utils.create_uncer_bins_eq_spacing(sort_v_idx, n_bins=5)
+ret_bins_samples = utils.create_uncer_bins_eq_samples(sort_v_idx, n_bins=5)
 
 
-new_ece_score = get_expected_calibration_error_retrieval_ProbVLM(pred_ranks_all, q_classes_all=gt_labels, g_classes_all=gt_labels, embedding_variances=im_uncertainty, bins=ret_bins_spacing)
+new_ece_score = utils.get_expected_calibration_error_retrieval(pred_ranks_all, q_classes_all=gt_labels, g_classes_all=gt_labels, embedding_variances=im_uncertainty, bins=ret_bins_spacing)
 
