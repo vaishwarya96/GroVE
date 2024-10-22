@@ -99,7 +99,7 @@ def kl_divergence_gaussians(mu0, var0, mu1, var1):
 
 
 # Function to infer Z given new observed X (text features)
-def infer_prob_embeddings(model, likelihood, latent_dim, Z_new, num_epochs=1, lr=0.1):
+def infer_prob_embeddings(model, likelihood, latent_dim, Z_new, num_epochs=20, lr=0.1):
     model.eval()
     likelihood.eval()
     
