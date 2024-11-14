@@ -16,7 +16,7 @@ _C.DATASET = CN()
 # Name of datset: 'CUB', 'coco', 'flickr', 'FLO'
 _C.DATASET.NAME = 'CUB'
 # Dataset path
-_C.DATASET.PATH = '/home/venkataramanan/projects/uq/ProbVLM/data' 
+_C.DATASET.PATH = PATH
 # Image mean and std
 _C.DATASET.IMG_MEAN = (0.48145466, 0.4578275, 0.40821073)
 _C.DATASET.IMG_STD = (0.26862954, 0.26130258, 0.27577711)
