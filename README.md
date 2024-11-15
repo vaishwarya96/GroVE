@@ -13,3 +13,6 @@ coco
 |-captions_train2014.json 
 |-captions_val2014.json
 ```
+TODO: Flickr, CUB and Flowers
+
+TODO: Finish the readme
